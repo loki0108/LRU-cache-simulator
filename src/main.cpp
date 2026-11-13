@@ -11,7 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "fifo_cache.hpp"
 #include "lru_cache.hpp"
+#include "random_cache.hpp"
 #include "workload.hpp"
 
 struct Config {
@@ -113,9 +115,11 @@ int main(int argc, char** argv) {
                 trace = repeated_trace(cfg.num_keys, cfg.num_ops, hot_keys, hot_prob, cfg.seed);
                 break;
         }
-        for (std::size_t cap : capacities) {
-            results.push_back(simulate<LRUCache<int, int>>("LRU", to_string(w), trace, cap));
-        }
+                for (std::size_t cap : capacities) {
+                    results.push_back(simulate<LRUCache<int, int>>("LRU", to_string(w), trace, cap));
+                    results.push_back(simulate<FIFOCache<int, int>>("FIFO", to_string(w), trace, cap));
+                    results.push_back(simulate<RandomCache<int, int>>("Random", to_string(w), trace, cap));
+                }
     }
 
     print_table(results);
