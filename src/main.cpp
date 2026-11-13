@@ -1,30 +1,44 @@
 #include <iostream>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "doubly_linked_list.hpp"
+#include "lru_cache.hpp"
 
-// Print keys from most recently used (left) to least recently used (right).
-void print(const std::string& label, const std::vector<int>& keys) {
-    std::cout << label << ": [ ";
-    for (int k : keys) std::cout << k << ' ';
+void print_state(const LRUCache<int, std::string>& cache) {
+    std::cout << "    cache: [ ";
+    for (int k : cache.keys()) std::cout << k << ' ';
     std::cout << "]  (MRU -> LRU)\n";
 }
 
+void do_get(LRUCache<int, std::string>& cache, int key) {
+    std::optional<std::string> v = cache.get(key);
+    std::cout << "get(" << key << ") -> " << (v ? *v : "MISS") << '\n';
+    print_state(cache);
+}
+
+void do_put(LRUCache<int, std::string>& cache, int key, const std::string& value) {
+    cache.put(key, value);
+    std::cout << "put(" << key << ", " << value << ")\n";
+    print_state(cache);
+}
+
 int main() {
-    DoublyLinkedList<int, std::string> list;
+    LRUCache<int, std::string> cache(2);
 
-    auto* n1 = list.push_front(1, "one");
-    list.push_front(2, "two");
-    list.push_front(3, "three");
-    print("after pushing 1, 2, 3", list.keys());
+    do_put(cache, 1, "one");
+    do_put(cache, 2, "two");
+    do_get(cache, 1);          // hit: 1 becomes most recent
+    do_put(cache, 3, "three"); // full: evicts 2 (least recent)
+    do_get(cache, 2);          // miss: 2 was evicted
+    do_put(cache, 4, "four");  // full: evicts 1
+    do_get(cache, 1);          // miss
+    do_get(cache, 3);          // hit
+    do_get(cache, 4);          // hit
 
-    list.move_to_front(n1);
-    print("after using 1        ", list.keys());
-
-    int evicted = list.pop_back();
-    print("after pop_back       ", list.keys());
-    std::cout << "evicted key: " << evicted << ", size now: " << list.size() << '\n';
-
+    const CacheStats& s = cache.stats();
+    std::cout << "\nhits: " << s.hits << ", misses: " << s.misses
+              << ", evictions: " << s.evictions
+              << ", hit ratio: " << s.hit_ratio() << '\n';
     return 0;
 }
