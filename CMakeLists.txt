@@ -16,3 +16,10 @@ endif()
 
 add_executable(simulator src/main.cpp)
 target_include_directories(simulator PRIVATE include)
+
+# ---- Tests ----
+enable_testing()
+
+add_executable(run_tests tests/test_lru_cache.cpp)
+target_include_directories(run_tests PRIVATE include)
+add_test(NAME lru_cache_tests COMMAND run_tests)
