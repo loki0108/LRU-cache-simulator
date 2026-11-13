@@ -27,3 +27,8 @@ add_test(NAME lru_cache_tests COMMAND run_tests)
 add_executable(run_policy_tests tests/test_policies.cpp)
 target_include_directories(run_policy_tests PRIVATE include)
 add_test(NAME policy_tests COMMAND run_policy_tests)
+
+
+# ---- Benchmark ----
+add_executable(benchmark bench/benchmark.cpp)
+target_include_directories(benchmark PRIVATE include)
