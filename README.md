@@ -6,6 +6,53 @@ compares hit/miss ratios against **FIFO** and **Random** eviction.
 
 ![Hit ratio vs cache capacity](docs/hit_ratio.png)
 
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph GEN["1 · Workload generators (workload.hpp)"]
+        SEQ["Sequential<br/>0, 1, …, 999, loop"]
+        RND["Random<br/>uniform keys"]
+        REP["Repeated<br/>10% hot keys get 80%"]
+    end
+
+    TRACE[("Trace<br/>100,000 keys")]
+
+    subgraph SIM["2 · Simulator (main.cpp)"]
+        LOOP["For each key:<br/>get(key), on miss put(key)<br/>× 7 capacities"]
+    end
+
+    subgraph POL["3 · Eviction policies (same get/put interface)"]
+        LRU["LRUCache<br/>hash map + doubly linked list"]
+        FIFO["FIFOCache<br/>hash map + deque"]
+        RAND["RandomCache<br/>hash map + vector"]
+    end
+
+    STATS["CacheStats<br/>hits · misses · evictions"]
+
+    subgraph OUT["4 · Output"]
+        TABLE["Console table"]
+        CSV[("results.csv")]
+        PNG["hit_ratio.png<br/>(plot_results.py)"]
+    end
+
+    SEQ --> TRACE
+    RND --> TRACE
+    REP --> TRACE
+    TRACE --> LOOP
+    LOOP --> LRU
+    LOOP --> FIFO
+    LOOP --> RAND
+    LRU --> STATS
+    FIFO --> STATS
+    RAND --> STATS
+    STATS --> TABLE
+    STATS --> CSV
+    CSV --> PNG
+```
+
+Every policy replays the **same trace**, so differences in hit ratio come only from the eviction policy.
+
 ## How it works
 
 The cache combines two data structures:
@@ -31,6 +78,21 @@ The cache combines two data structures:
 | `put(key, value)` existing key | update value → move node to front | O(1) |
 
 Each node stores its key so that, on eviction, the matching map entry can be erased.
+
+### Request flow
+
+```mermaid
+flowchart TD
+    REQ(["Request key"]) --> FOUND{"Key in hash map?"}
+    FOUND -->|"Yes: HIT"| MOVE["Move its node to the<br/>front of the list"]
+    MOVE --> RET(["Return value"])
+    FOUND -->|"No: MISS"| FULL{"Cache full?"}
+    FULL -->|"Yes"| POP["Pop the node at the back<br/>(least recently used)"]
+    POP --> ERASE["Erase that node's key<br/>from the hash map"]
+    ERASE --> PUSH["Push new node to the front<br/>and store key → node in the map"]
+    FULL -->|"No"| PUSH
+    PUSH --> LOAD(["Return value<br/>(loaded from slow storage)"])
+```
 
 ## Project structure
 
